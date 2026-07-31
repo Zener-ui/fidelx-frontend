@@ -11,6 +11,7 @@ import { roleHomePath, isValidNigerianPhone } from "@/utils";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
+import { FIDELX_CATEGORIES } from "@/constants/fidelxCategories";
 
 const ROLES = [
   { value: "customer", label: "Customer", desc: "Browse and shop" },
@@ -226,13 +227,22 @@ export default function RegisterPage() {
               onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
               error={errors.business_name}
             />
-            <Input
-              label="Category"
-              placeholder="e.g. Foodstuff, Fashion"
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              error={errors.category}
-            />
+            <div>
+              <label className="text-sm font-medium text-slate-soft mb-1.5 block">Category</label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className={`w-full bg-surface rounded-xl border ${
+                  errors.category ? "border-red-400" : "border-surface-border"
+                } text-ink px-4 py-3 text-sm outline-none focus:border-teal`}
+              >
+                <option value="">Select category</option>
+                {FIDELX_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              {errors.category && <p className="text-xs text-red-400 mt-1">{errors.category}</p>}
+            </div>
             <Input
               label="Location / Area"
               placeholder="e.g. Otukpo Central Market"

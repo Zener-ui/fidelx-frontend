@@ -6,7 +6,7 @@ Included:
 - Vendor/rider withdrawal Paystack transfer initiation
 - Transfer webhook success/failure/reversal handling
 - Optional Paystack OTP finalization endpoint/UI
-- Canonical vendor category dropdown
+- Canonical vendor category dropdown (registration + vendor settings)
 - Backend category validation
 - Mobile cart/checkout CTA moved above the mobile bottom navigation
 
