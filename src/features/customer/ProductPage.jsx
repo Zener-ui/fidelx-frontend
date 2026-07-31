@@ -67,7 +67,7 @@ export default function ProductPage() {
   const ctaLabel = outOfStock ? "Out of Stock" : isUnavailable ? "Store Unavailable" : `Add to Cart — ${formatNaira(effectivePrice * qty)}`;
 
   return (
-    <div className="min-h-screen pb-28 lg:pb-8">
+    <div className="min-h-screen pb-36 lg:pb-8">
       <TopBar showBack />
 
       <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:px-8 lg:pt-4">
@@ -205,7 +205,7 @@ export default function ProductPage() {
       </div>
 
       {/* Sticky CTA — mobile only; desktop has the inline button above */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 md:left-60 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border">
+      <div className="lg:hidden fixed left-0 right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[100] px-4 pt-3 pb-3 bg-navy border-t border-surface-border shadow-[0_-8px_24px_rgba(0,0,0,0.12)]">
         <Button
           size="xl"
           onClick={handleAddToCart}

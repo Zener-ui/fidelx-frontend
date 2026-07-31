@@ -95,7 +95,7 @@ export default function CheckoutPage() {
   const total = subtotal() + platformFee + deliveryFee;
 
   return (
-    <div className="min-h-screen pb-44">
+    <div className="min-h-screen pb-36">
       <TopBar title="Checkout" showBack />
 
       <div className="px-4 py-3 space-y-4">
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-16 left-0 right-0 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
+      <div className="fixed left-0 right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[100] p-4 bg-navy border-t border-surface-border shadow-[0_-8px_24px_rgba(0,0,0,0.12)] max-w-lg mx-auto">
         <Button size="xl" onClick={handlePlaceOrder} loading={orderMutation.isPending}>
           Pay {formatNaira(total)} with Paystack
         </Button>
