@@ -165,7 +165,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
+      <div className="fixed bottom-16 left-0 right-0 z-30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
         <Button size="xl" onClick={handlePlaceOrder} loading={orderMutation.isPending}>
           Pay {formatNaira(total)} with Paystack
         </Button>

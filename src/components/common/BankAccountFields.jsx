@@ -1,125 +1,150 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Input from "./Input";
-import Button from "./Button";
-import { getBanks, resolveBankAccount } from "@/api/withdrawals";
+import { CheckCircle2 } from "lucide-react";
+import { getBanks, resolveAccount } from "@/api/withdrawals";
+import Input from "@/components/common/Input";
+import Button from "@/components/common/Button";
 
-export default function BankAccountFields({ value, onChange, errors = {} }) {
-  const [verified, setVerified] = useState(false);
-  const { data, isLoading: banksLoading } = useQuery({
+export default function BankAccountFields({
+  form,
+  setForm,
+  errors = {},
+  verifiedAccount,
+  setVerifiedAccount,
+}) {
+  const { data, isLoading: banksLoading, isError: banksError } = useQuery({
     queryKey: ["paystack-banks"],
     queryFn: getBanks,
-    staleTime: 1000 * 60 * 60 * 12,
+    staleTime: 1000 * 60 * 60,
   });
 
   const banks = data?.banks || [];
 
-  const resolveMutation = useMutation({
-    mutationFn: resolveBankAccount,
+  const verifyMutation = useMutation({
+    mutationFn: resolveAccount,
     onSuccess: (response) => {
-      const accountName = response?.account?.account_name;
-      if (!accountName) {
-        setVerified(false);
-        toast.error("Paystack could not verify that account.");
-        return;
-      }
-      onChange({
-        ...value,
-        account_name: accountName,
-        verified_account_name: accountName,
-      });
-      setVerified(true);
-      toast.success("Bank account verified ✓");
+      const account = response.account;
+      setVerifiedAccount(account);
+      setForm((current) => ({
+        ...current,
+        bank_account: account.account_number,
+        bank_code: account.bank_code,
+        bank_name: account.bank_name || current.bank_name,
+        account_name: account.account_name,
+      }));
+      toast.success("Bank account verified");
     },
     onError: (err) => {
-      setVerified(false);
-      onChange({ ...value, account_name: "", verified_account_name: "" });
-      toast.error(err.message || "Could not verify bank account");
+      setVerifiedAccount(null);
+      setForm((current) => ({ ...current, account_name: "" }));
+      toast.error(err.message || "Could not verify this account");
     },
   });
 
   useEffect(() => {
-    setVerified(false);
-  }, [value.bank_code, value.bank_account]);
+    if (!form.bank_code || !form.bank_account) return;
+    setVerifiedAccount(null);
+    setForm((current) => ({ ...current, account_name: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.bank_code, form.bank_account]);
 
   const canVerify =
-    value.bank_code &&
-    /^\d{10}$/.test(String(value.bank_account || ""));
+    form.bank_code &&
+    /^\d{10}$/.test(String(form.bank_account || "").replace(/\D/g, ""));
+
+  const verify = () => {
+    if (!canVerify) {
+      toast.error("Select a bank and enter a valid 10-digit account number.");
+      return;
+    }
+    verifyMutation.mutate({
+      bank_code: form.bank_code,
+      account_number: String(form.bank_account).replace(/\D/g, ""),
+    });
+  };
 
   return (
     <div className="space-y-3">
       <div>
-        <label className="text-sm font-medium text-slate-soft">Bank</label>
+        <label className="block text-xs font-medium text-ink mb-1.5">Bank</label>
         <select
-          value={value.bank_code || ""}
+          value={form.bank_code || ""}
           disabled={banksLoading}
           onChange={(e) => {
-            const selected = banks.find((b) => b.code === e.target.value);
-            onChange({
-              ...value,
-              bank_code: e.target.value,
-              bank_name: selected?.name || "",
+            const code = e.target.value;
+            const bank = banks.find((item) => String(item.code) === code);
+            setVerifiedAccount(null);
+            setForm((current) => ({
+              ...current,
+              bank_code: code,
+              bank_name: bank?.name || "",
               account_name: "",
-              verified_account_name: "",
-            });
-            setVerified(false);
+            }));
           }}
-          className={`w-full mt-1 bg-surface rounded-xl border ${
-            errors.bank_code ? "border-red-400" : "border-surface-border"
-          } text-ink px-4 py-3 text-sm outline-none focus:border-teal`}
+          className="w-full rounded-xl border border-surface-border bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-teal"
         >
-          <option value="">{banksLoading ? "Loading banks..." : "Select bank"}</option>
+          <option value="">
+            {banksLoading ? "Loading banks..." : "Select your bank"}
+          </option>
           {banks.map((bank) => (
             <option key={`${bank.code}-${bank.name}`} value={bank.code}>
               {bank.name}
             </option>
           ))}
         </select>
-        {errors.bank_code && <p className="text-xs text-red-400 mt-1">{errors.bank_code}</p>}
-      </div>
-
-      <div className="flex gap-2 items-end">
-        <div className="flex-1">
-          <Input
-            label="Account Number"
-            inputMode="numeric"
-            maxLength={10}
-            value={value.bank_account || ""}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-              onChange({
-                ...value,
-                bank_account: digits,
-                account_name: "",
-                verified_account_name: "",
-              });
-              setVerified(false);
-            }}
-            error={errors.bank_account}
-          />
-        </div>
-        <Button
-          type="button"
-          className="mb-0.5"
-          disabled={!canVerify || resolveMutation.isPending}
-          onClick={() => resolveMutation.mutate({
-            account_number: value.bank_account,
-            bank_code: value.bank_code,
-          })}
-          loading={resolveMutation.isPending}
-        >
-          Verify
-        </Button>
+        {banksError && (
+          <p className="text-red-400 text-xs mt-1">
+            Could not load banks. Try again.
+          </p>
+        )}
       </div>
 
       <Input
-        label="Verified Account Name"
-        value={value.account_name || ""}
-        disabled
-        helper={verified ? "Verified by Paystack. This name cannot be edited." : "Verify the account number before submitting."}
-        error={errors.account_name}
+        label="Account Number"
+        inputMode="numeric"
+        maxLength={10}
+        value={form.bank_account}
+        onChange={(e) => {
+          const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+          setVerifiedAccount(null);
+          setForm((current) => ({
+            ...current,
+            bank_account: value,
+            account_name: "",
+          }));
+        }}
+        error={errors.bank_account}
       />
+
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={verify}
+        disabled={!canVerify || verifyMutation.isPending}
+        loading={verifyMutation.isPending}
+        className="w-full"
+      >
+        Verify Account
+      </Button>
+
+      <div
+        className={`rounded-xl border p-3 ${
+          verifiedAccount
+            ? "border-teal/30 bg-teal/5"
+            : "border-surface-border bg-surface"
+        }`}
+      >
+        <p className="text-slate-muted text-[10px] uppercase tracking-wide">
+          Verified account name
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          {verifiedAccount && <CheckCircle2 size={16} className="text-teal" />}
+          <p className="text-ink text-sm font-semibold">
+            {verifiedAccount?.account_name || "Verify your account to continue"}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Banknote } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getAllWithdrawals, approveWithdrawal, finalizeWithdrawalTransfer, rejectWithdrawal } from "@/api/withdrawals";
+import { getAllWithdrawals, approveWithdrawal, rejectWithdrawal } from "@/api/withdrawals";
 import { formatNaira, formatDate } from "@/utils";
 import Modal from "@/components/common/Modal";
 import Button from "@/components/common/Button";
@@ -11,7 +11,7 @@ import EmptyState from "@/components/common/EmptyState";
 import ErrorState from "@/components/common/ErrorState";
 import { Skeleton } from "@/components/common/Loader";
 
-const STATUS_COLORS = { PENDING:"text-yellow-400", PROCESSING:"text-blue-accent", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400", APPROVED:"text-blue-accent" };
+const STATUS_COLORS = { PENDING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400", APPROVED:"text-blue-accent", PROCESSING:"text-yellow-400", FAILED:"text-red-400" };
 
 export default function AdminWithdrawalsPage() {
   const qc = useQueryClient();
@@ -19,26 +19,13 @@ export default function AdminWithdrawalsPage() {
   const [rejectModal, setRejectModal] = useState(null);
   const [reason, setReason] = useState("");
   const [proof, setProof] = useState("");
-  const [otpWithdrawal, setOtpWithdrawal] = useState(null);
-  const [otp, setOtp] = useState("");
 
   const { data, isLoading, isError, error, refetch } = useQuery({ queryKey: ["admin-withdrawals", tab], queryFn: () => getAllWithdrawals(tab) });
   const withdrawals = data?.withdrawals || [];
 
   const approveMutation = useMutation({
     mutationFn: (id) => approveWithdrawal(id, proof),
-    onSuccess: (data) => { toast.success(data.message || "Transfer initiated"); qc.invalidateQueries(["admin-withdrawals"]); setProof(""); },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const finalizeMutation = useMutation({
-    mutationFn: ({ id, otp }) => finalizeWithdrawalTransfer(id, otp),
-    onSuccess: () => {
-      toast.success("Paystack transfer finalization submitted");
-      qc.invalidateQueries(["admin-withdrawals"]);
-      setOtpWithdrawal(null);
-      setOtp("");
-    },
+    onSuccess: () => { toast.success("Withdrawal approved"); qc.invalidateQueries(["admin-withdrawals"]); setProof(""); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -52,7 +39,7 @@ export default function AdminWithdrawalsPage() {
     <div className="p-4 md:p-6">
       <h1 className="text-ink text-xl font-bold mb-4">Payouts</h1>
       <div className="flex gap-2 mb-4">
-        {["PENDING","PROCESSING","COMPLETED","REJECTED","FAILED"].map((t) => (
+        {["PENDING","PROCESSING","COMPLETED","FAILED","REJECTED"].map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-xl text-xs font-medium border capitalize transition-all ${tab === t ? "bg-teal text-navy border-teal" : "border-surface-border text-slate-muted bg-surface"}`}>
             {t}
@@ -85,15 +72,12 @@ export default function AdminWithdrawalsPage() {
                   <span className="text-teal font-black text-base">{formatNaira(w.net_payout)}</span>
                 </div>
                 <p className="text-slate-muted text-xs mb-3">Gross: {formatNaira(w.gross_amount)} · Fee: {formatNaira(w.withdrawal_fee)}</p>
-                {w.status === "PROCESSING" && w.paystack_transfer_code && (
-                  <Button size="sm" className="w-full mb-2" onClick={() => { setOtpWithdrawal(w); setOtp(""); }}>
-                    Finalize Paystack Transfer
-                  </Button>
-                )}
+                {w.paystack_status && <p className="text-slate-muted text-xs mb-1">Paystack: {w.paystack_status}</p>}
+                {w.failure_reason && <p className="text-red-400 text-xs mb-3">{w.failure_reason}</p>}
                 {w.status === "PENDING" && (
                   <div className="flex gap-2">
                     <Button size="sm" variant="danger" className="flex-1" onClick={() => { setRejectModal(w); setReason(""); }}>Reject</Button>
-                    <Button size="sm" className="flex-1" onClick={() => approveMutation.mutate(w.id)} loading={approveMutation.isPending}>Approve & Pay</Button>
+                    <Button size="sm" className="flex-1" onClick={() => approveMutation.mutate(w.id)} loading={approveMutation.isPending}>Approve & Send</Button>
                   </div>
                 )}
               </div>
@@ -111,27 +95,5 @@ export default function AdminWithdrawalsPage() {
         </div>
       </Modal>
     </div>
-  );
-}
-
-      <Modal open={!!otpWithdrawal} onClose={() => setOtpWithdrawal(null)} title="Finalize Paystack Transfer">
-        <div className="space-y-3">
-          <p className="text-slate-muted text-sm">
-            Enter the Paystack OTP for the transfer to {otpWithdrawal?.account_name}.
-          </p>
-          <Input label="Paystack OTP" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))} />
-          <Button
-            size="xl"
-            onClick={() => {
-              if (!otp.trim()) { toast.error("OTP required"); return; }
-              finalizeMutation.mutate({ id: otpWithdrawal.id, otp });
-            }}
-            loading={finalizeMutation.isPending}
-          >
-            Finalize Transfer
-          </Button>
-        </div>
-      </Modal>
-        {/* withdrawal action */}
   );
 }

@@ -5,12 +5,12 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getOnboardingStatus, markStepComplete } from "@/api/onboarding";
 import { registerVendor } from "@/api/vendors";
+import { getCategories } from "@/api/search";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Loader from "@/components/common/Loader";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
-import { FIDELX_CATEGORIES } from "@/constants/fidelxCategories";
 
 const STEPS = [
   { key: "business_profile_completed", label: "Business Profile",    desc: "Tell us about your business" },
@@ -25,6 +25,7 @@ export default function VendorOnboarding() {
   const { user } = useAuthStore();
 
   const [form, setForm] = useState({ business_name: "", category: "", location: "", address: "", phone: user?.phone || "", whatsapp: "", location_lat: null, location_lng: null });
+  const { data: categoryData } = useQuery({ queryKey: ["vendor-categories"], queryFn: getCategories, staleTime: Infinity });
   const [errors, setErrors] = useState({});
 
   const { data, isLoading } = useQuery({ queryKey: ["onboarding"], queryFn: getOnboardingStatus });
@@ -91,17 +92,20 @@ export default function VendorOnboarding() {
       {!progress?.business_profile_completed && (
         <form onSubmit={(e) => { e.preventDefault(); if (validate()) registerMutation.mutate(form); }} className="space-y-3">
           <Input label="Business Name" value={form.business_name} onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))} error={errors.business_name} />
-          <div>
-            <label className="text-sm font-medium text-slate-soft">Business Category</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="onboarding-category" className="text-sm font-medium text-slate-soft">Category</label>
             <select
+              id="onboarding-category"
               value={form.category}
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className={`w-full mt-1 bg-surface rounded-xl border ${errors.category ? "border-red-400" : "border-surface-border"} text-ink px-4 py-3 text-sm outline-none focus:border-teal`}
+              className="w-full bg-surface rounded-xl border border-surface-border text-ink py-3 px-4 text-sm outline-none focus:border-teal focus:ring-1 focus:ring-teal/30"
             >
-              <option value="">Select category</option>
-              {FIDELX_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+              <option value="">Select a category</option>
+              {categoryData?.categories?.map((cat) => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
+              ))}
             </select>
-            {errors.category && <p className="text-xs text-red-400 mt-1">{errors.category}</p>}
+            {errors.category && <p className="text-xs text-red-400">{errors.category}</p>}
           </div>
           <Input label="Location / Area" placeholder="e.g. Otukpo Central Market" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} error={errors.location} />
           <div>

@@ -13,12 +13,13 @@ import Card from "@/components/common/Card";
 import EmptyState from "@/components/common/EmptyState";
 import BankAccountFields from "@/components/common/BankAccountFields";
 
-const STATUS_COLORS = { PENDING:"text-yellow-400", APPROVED:"text-teal", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
+const STATUS_COLORS = { PENDING:"text-yellow-400", APPROVED:"text-teal", PROCESSING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
 
 export default function VendorWithdrawalsPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "", verified_account_name: "" });
+  const [form, setForm] = useState({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "" });
+  const [verifiedAccount, setVerifiedAccount] = useState(null);
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
 
@@ -40,7 +41,8 @@ export default function VendorWithdrawalsPage() {
       qc.invalidateQueries(["my-withdrawals"]);
       qc.invalidateQueries(["vendor-earnings"]);
       setModalOpen(false);
-      setForm({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "", verified_account_name: "" });
+      setForm({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "" });
+      setVerifiedAccount(null);
       setPreview(null);
     },
     onError: (err) => toast.error(err.message),
@@ -50,9 +52,7 @@ export default function VendorWithdrawalsPage() {
     const e = {};
     if (!form.amount || Number(form.amount) <= 0) e.amount = "Enter a valid amount";
     if (Number(form.amount) > available) e.amount = `Exceeds available balance of ${formatNaira(available)}`;
-    if (!form.bank_account.trim()) e.bank_account = "Required";
-    if (!form.bank_name.trim()) e.bank_name = "Required";
-    if (!form.account_name.trim()) e.account_name = "Required";
+    if (!verifiedAccount) e.bank_account = "Verify your bank account before submitting";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -112,7 +112,7 @@ export default function VendorWithdrawalsPage() {
             </div>
           )}
 
-          <BankAccountFields value={form} onChange={setForm} errors={errors} />
+          <BankAccountFields form={form} setForm={setForm} errors={errors} verifiedAccount={verifiedAccount} setVerifiedAccount={setVerifiedAccount} />
           <Button size="xl" onClick={handleSubmit} loading={withdrawMutation.isPending}>Submit Request</Button>
         </div>
       </Modal>

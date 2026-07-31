@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { getMyVendorProfile, updateVendorProfile } from "@/api/vendors";
+import { getCategories } from "@/api/search";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
 import { Skeleton } from "@/components/common/Loader";
-import { FIDELX_CATEGORIES } from "@/constants/fidelxCategories";
 
 export default function VendorSettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["vendor-profile"], queryFn: getMyVendorProfile });
+  const { data: categoryData } = useQuery({ queryKey: ["vendor-categories"], queryFn: getCategories, staleTime: Infinity });
   const [form, setForm] = useState(null);
 
   if (!isLoading && data?.vendor && !form) {
@@ -39,18 +40,19 @@ export default function VendorSettingsPage() {
           <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form); }} className="space-y-3">
             <Input label="Business Name" value={form.business_name} onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))} />
             <div>
-          <label className="text-sm font-medium text-slate-soft">Category</label>
-          <select
-            value={form.category}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            className="w-full mt-1 bg-surface rounded-xl border border-surface-border text-ink px-4 py-3 text-sm outline-none focus:border-teal"
-          >
-            <option value="">Select category</option>
-            {FIDELX_CATEGORIES.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-        </div>
+              <label htmlFor="settings-category" className="text-sm font-medium text-slate-soft mb-1.5 block">Category</label>
+              <select
+                id="settings-category"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full bg-surface rounded-xl border border-surface-border text-ink py-3 px-4 text-sm outline-none focus:border-teal focus:ring-1 focus:ring-teal/30"
+              >
+                <option value="">Select a category</option>
+                {categoryData?.categories?.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
             <Input label="Location / Area" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
             <div>
               <GpsLocationCapture

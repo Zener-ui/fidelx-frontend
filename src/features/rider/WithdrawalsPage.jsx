@@ -13,12 +13,13 @@ import Card from "@/components/common/Card";
 import EmptyState from "@/components/common/EmptyState";
 import BankAccountFields from "@/components/common/BankAccountFields";
 
-const STATUS_COLORS = { PENDING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400" };
+const STATUS_COLORS = { PENDING:"text-yellow-400", PROCESSING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
 
 export default function RiderWithdrawalsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"", verified_account_name:"" });
+  const [form, setForm] = useState({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"" });
+  const [verifiedAccount, setVerifiedAccount] = useState(null);
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
 
@@ -30,7 +31,15 @@ export default function RiderWithdrawalsPage() {
 
   const mutation = useMutation({
     mutationFn: requestRiderWithdrawal,
-    onSuccess: () => { toast.success("Withdrawal submitted"); qc.invalidateQueries(["my-withdrawals"]); setOpen(false); setPreview(null); setForm({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"", verified_account_name:"" }); },
+    onSuccess: () => {
+      toast.success("Withdrawal submitted");
+      qc.invalidateQueries(["my-withdrawals"]);
+      qc.invalidateQueries(["rider-earnings"]);
+      setOpen(false);
+      setPreview(null);
+      setForm({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"" });
+      setVerifiedAccount(null);
+    },
     onError: (err) => toast.error(err.message),
   });
 
@@ -38,9 +47,7 @@ export default function RiderWithdrawalsPage() {
     const e = {};
     if (!form.amount || Number(form.amount) <= 0) e.amount = "Enter amount";
     if (Number(form.amount) > available) e.amount = "Exceeds available balance";
-    if (!/^\d{10}$/.test(String(form.bank_account || ""))) e.bank_account = "Enter a valid 10-digit account number";
-    if (!form.bank_code) e.bank_code = "Select a bank";
-    if (!form.account_name || !form.verified_account_name || form.account_name !== form.verified_account_name) e.account_name = "Verify the account before submitting";
+    if (!verifiedAccount) e.bank_account = "Verify your bank account before submitting";
     setErrors(e); return !Object.keys(e).length;
   };
 
@@ -72,7 +79,7 @@ export default function RiderWithdrawalsPage() {
               <div className="flex justify-between font-bold border-t border-surface-border pt-1"><span className="text-ink">You receive</span><span className="text-teal">{formatNaira(preview.net_payout)}</span></div>
             </div>
           )}
-          <BankAccountFields value={form} onChange={setForm} errors={errors} />
+          <BankAccountFields form={form} setForm={setForm} errors={errors} verifiedAccount={verifiedAccount} setVerifiedAccount={setVerifiedAccount} />
           <Button size="xl" onClick={() => { if (validate()) mutation.mutate({ ...form, amount: Number(form.amount) }); }} loading={mutation.isPending}>Submit</Button>
         </div>
       </Modal>

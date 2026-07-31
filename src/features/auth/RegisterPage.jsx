@@ -6,12 +6,12 @@ import { register } from "@/api/auth";
 import { registerVendor } from "@/api/vendors";
 import { registerRider } from "@/api/riders";
 import { getPilotSettings } from "@/api/admin";
+import { getCategories } from "@/api/search";
 import { useAuthStore } from "@/store/authStore";
 import { roleHomePath, isValidNigerianPhone } from "@/utils";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
-import { FIDELX_CATEGORIES } from "@/constants/fidelxCategories";
 
 const ROLES = [
   { value: "customer", label: "Customer", desc: "Browse and shop" },
@@ -47,6 +47,12 @@ export default function RegisterPage() {
   const needsInvite =
     (form.role === "vendor" && pilot?.vendor_invite_only) ||
     (form.role === "rider"  && pilot?.rider_invite_only);
+
+  const { data: categoryData } = useQuery({
+    queryKey: ["vendor-categories"],
+    queryFn: getCategories,
+    staleTime: Infinity,
+  });
 
   // Switching roles clears out the other roles' fields, so a role
   // switch can never accidentally submit incompatible leftover data
@@ -227,21 +233,20 @@ export default function RegisterPage() {
               onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
               error={errors.business_name}
             />
-            <div>
-              <label className="text-sm font-medium text-slate-soft mb-1.5 block">Category</label>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="vendor-category" className="text-sm font-medium text-slate-soft">Category</label>
               <select
+                id="vendor-category"
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className={`w-full bg-surface rounded-xl border ${
-                  errors.category ? "border-red-400" : "border-surface-border"
-                } text-ink px-4 py-3 text-sm outline-none focus:border-teal`}
+                className="w-full bg-surface rounded-xl border border-surface-border text-ink py-3 px-4 text-sm outline-none focus:border-teal focus:ring-1 focus:ring-teal/30"
               >
-                <option value="">Select category</option>
-                {FIDELX_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                <option value="">Select a category</option>
+                {categoryData?.categories?.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>{cat.name}</option>
                 ))}
               </select>
-              {errors.category && <p className="text-xs text-red-400 mt-1">{errors.category}</p>}
+              {errors.category && <p className="text-xs text-red-400">{errors.category}</p>}
             </div>
             <Input
               label="Location / Area"
