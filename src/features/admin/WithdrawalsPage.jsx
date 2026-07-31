@@ -132,6 +132,6 @@ export default function AdminWithdrawalsPage() {
           </Button>
         </div>
       </Modal>
-    </div>
+        {/* withdrawal action */}
   );
 }
