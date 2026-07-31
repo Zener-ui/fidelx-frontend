@@ -205,7 +205,7 @@ export default function ProductPage() {
       </div>
 
       {/* Sticky CTA — mobile only; desktop has the inline button above */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 md:left-60 p-4 bg-navy border-t border-surface-border">
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 md:left-60 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border">
         <Button
           size="xl"
           onClick={handleAddToCart}

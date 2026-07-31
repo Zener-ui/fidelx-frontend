@@ -75,7 +75,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-16 left-0 right-0 z-30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
+      <div className="fixed bottom-16 left-0 right-0 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
         <Button size="xl" onClick={() => navigate("/customer/checkout")}>
           Proceed to Checkout — {formatNaira(subtotal() * 1.05)}
         </Button>
