@@ -10,6 +10,7 @@ import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Loader from "@/components/common/Loader";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
+import { FIDELX_CATEGORIES } from "@/constants/fidelxCategories";
 
 const STEPS = [
   { key: "business_profile_completed", label: "Business Profile",    desc: "Tell us about your business" },
@@ -90,7 +91,18 @@ export default function VendorOnboarding() {
       {!progress?.business_profile_completed && (
         <form onSubmit={(e) => { e.preventDefault(); if (validate()) registerMutation.mutate(form); }} className="space-y-3">
           <Input label="Business Name" value={form.business_name} onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))} error={errors.business_name} />
-          <Input label="Category (e.g. Food, Fashion)" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} error={errors.category} />
+          <div>
+            <label className="text-sm font-medium text-slate-soft">Business Category</label>
+            <select
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              className={`w-full mt-1 bg-surface rounded-xl border ${errors.category ? "border-red-400" : "border-surface-border"} text-ink px-4 py-3 text-sm outline-none focus:border-teal`}
+            >
+              <option value="">Select category</option>
+              {FIDELX_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+            {errors.category && <p className="text-xs text-red-400 mt-1">{errors.category}</p>}
+          </div>
           <Input label="Location / Area" placeholder="e.g. Otukpo Central Market" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} error={errors.location} />
           <div>
             <GpsLocationCapture

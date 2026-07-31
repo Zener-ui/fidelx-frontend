@@ -11,13 +11,14 @@ import Input from "@/components/common/Input";
 import Modal from "@/components/common/Modal";
 import Card from "@/components/common/Card";
 import EmptyState from "@/components/common/EmptyState";
+import BankAccountFields from "@/components/common/BankAccountFields";
 
 const STATUS_COLORS = { PENDING:"text-yellow-400", APPROVED:"text-teal", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
 
 export default function VendorWithdrawalsPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ amount: "", bank_account: "", bank_name: "", account_name: "" });
+  const [form, setForm] = useState({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "", verified_account_name: "" });
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
 
@@ -39,7 +40,7 @@ export default function VendorWithdrawalsPage() {
       qc.invalidateQueries(["my-withdrawals"]);
       qc.invalidateQueries(["vendor-earnings"]);
       setModalOpen(false);
-      setForm({ amount: "", bank_account: "", bank_name: "", account_name: "" });
+      setForm({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "", verified_account_name: "" });
       setPreview(null);
     },
     onError: (err) => toast.error(err.message),
@@ -111,9 +112,7 @@ export default function VendorWithdrawalsPage() {
             </div>
           )}
 
-          <Input label="Account Number" value={form.bank_account} onChange={(e) => setForm((f) => ({ ...f, bank_account: e.target.value }))} error={errors.bank_account} />
-          <Input label="Bank Name" placeholder="e.g. GTBank" value={form.bank_name} onChange={(e) => setForm((f) => ({ ...f, bank_name: e.target.value }))} error={errors.bank_name} />
-          <Input label="Account Name" value={form.account_name} onChange={(e) => setForm((f) => ({ ...f, account_name: e.target.value }))} error={errors.account_name} />
+          <BankAccountFields value={form} onChange={setForm} errors={errors} />
           <Button size="xl" onClick={handleSubmit} loading={withdrawMutation.isPending}>Submit Request</Button>
         </div>
       </Modal>

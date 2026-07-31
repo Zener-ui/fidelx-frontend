@@ -2,17 +2,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/authStore";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? "https://fidelx-backend.onrender.com/api"
-    : "http://localhost:5000/api");
-
-if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
-  // Loud on purpose: if you ever see this in the deployed console,
-  // VITE_API_URL isn't reaching the build — check Netlify env var scope.
-  console.warn("[client.js] VITE_API_URL missing at build time — falling back to hardcoded Render URL.");
-}
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const client = axios.create({
   baseURL: BASE_URL,

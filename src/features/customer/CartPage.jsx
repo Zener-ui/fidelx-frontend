@@ -20,7 +20,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen pb-40">
       <TopBar title={`Cart (${items.length})`} right={
         <button onClick={clearCart} className="text-red-400 text-xs">Clear all</button>
       } />
@@ -75,7 +75,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-navy border-t border-surface-border max-w-lg mx-auto">
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
         <Button size="xl" onClick={() => navigate("/customer/checkout")}>
           Proceed to Checkout — {formatNaira(subtotal() * 1.05)}
         </Button>
