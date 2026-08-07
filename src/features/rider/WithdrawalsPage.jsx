@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Banknote } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getMyWithdrawals, requestRiderWithdrawal, getFeePreview } from "@/api/withdrawals";
+import { getMyWithdrawals, requestRiderWithdrawal, getFeePreview, getPinStatus } from "@/api/withdrawals";
 import { getRiderEarnings } from "@/api/riders";
 import { formatNaira, formatDate } from "@/utils";
 import TopBar from "@/components/layout/TopBar";
@@ -12,12 +12,14 @@ import Modal from "@/components/common/Modal";
 import Card from "@/components/common/Card";
 import EmptyState from "@/components/common/EmptyState";
 import BankAccountFields from "@/components/common/BankAccountFields";
+import WithdrawalPinModal from "@/components/common/WithdrawalPinModal";
 
 const STATUS_COLORS = { PENDING:"text-yellow-400", PROCESSING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
 
 export default function RiderWithdrawalsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
   const [form, setForm] = useState({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"" });
   const [verifiedAccount, setVerifiedAccount] = useState(null);
   const [errors, setErrors] = useState({});
@@ -25,7 +27,9 @@ export default function RiderWithdrawalsPage() {
 
   const { data: earningsData } = useQuery({ queryKey: ["rider-earnings"], queryFn: getRiderEarnings });
   const { data: historyData, isLoading } = useQuery({ queryKey: ["my-withdrawals"], queryFn: getMyWithdrawals });
+  const { data: pinStatusData } = useQuery({ queryKey: ["withdrawal-pin-status"], queryFn: getPinStatus });
   const available = earningsData?.available_balance || 0;
+  const hasPin = !!pinStatusData?.pin_set;
 
   const previewMutation = useMutation({ mutationFn: getFeePreview, onSuccess: (d) => setPreview(d.breakdown) });
 
@@ -36,6 +40,7 @@ export default function RiderWithdrawalsPage() {
       qc.invalidateQueries(["my-withdrawals"]);
       qc.invalidateQueries(["rider-earnings"]);
       setOpen(false);
+      setPinOpen(false);
       setPreview(null);
       setForm({ amount:"", bank_account:"", bank_code:"", bank_name:"", account_name:"" });
       setVerifiedAccount(null);
@@ -49,6 +54,10 @@ export default function RiderWithdrawalsPage() {
     if (Number(form.amount) > available) e.amount = "Exceeds available balance";
     if (!verifiedAccount) e.bank_account = "Verify your bank account before submitting";
     setErrors(e); return !Object.keys(e).length;
+  };
+
+  const handlePinVerified = (pin) => {
+    mutation.mutate({ ...form, amount: Number(form.amount), pin });
   };
 
   return (
@@ -80,9 +89,17 @@ export default function RiderWithdrawalsPage() {
             </div>
           )}
           <BankAccountFields form={form} setForm={setForm} errors={errors} verifiedAccount={verifiedAccount} setVerifiedAccount={setVerifiedAccount} />
-          <Button size="xl" onClick={() => { if (validate()) mutation.mutate({ ...form, amount: Number(form.amount) }); }} loading={mutation.isPending}>Submit</Button>
+          <Button size="xl" onClick={() => { if (validate()) setPinOpen(true); }} loading={mutation.isPending}>Submit</Button>
         </div>
       </Modal>
+
+      <WithdrawalPinModal
+        open={pinOpen}
+        onClose={() => setPinOpen(false)}
+        hasPin={hasPin}
+        onVerified={handlePinVerified}
+        verifying={mutation.isPending}
+      />
     </div>
   );
 }

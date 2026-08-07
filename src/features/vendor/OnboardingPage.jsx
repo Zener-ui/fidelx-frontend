@@ -3,20 +3,21 @@ import { Store, Check } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { getOnboardingStatus, markStepComplete } from "@/api/onboarding";
-import { registerVendor } from "@/api/vendors";
+import { getOnboardingStatus, markStepComplete, reapplyVendor } from "@/api/onboarding";
+import { registerVendor, getMyVendorProfile } from "@/api/vendors";
 import { getCategories } from "@/api/search";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Loader from "@/components/common/Loader";
 import GpsLocationCapture from "@/components/common/GpsLocationCapture";
+import TermsAcceptanceStep from "@/components/common/TermsAcceptanceStep";
+import VerificationStatusCard from "@/components/common/VerificationStatusCard";
 
 const STEPS = [
-  { key: "business_profile_completed", label: "Business Profile",    desc: "Tell us about your business" },
-  { key: "documents_uploaded",         label: "Upload Documents",    desc: "ID and business documents" },
-  { key: "verification_submitted",     label: "Await Verification",  desc: "We'll review within 24h" },
-  { key: "first_product_added",        label: "Add First Product",   desc: "List your first item" },
+  { key: "terms_accepted",             label: "Terms & Conditions", desc: "Read and accept the Fidelx terms" },
+  { key: "business_profile_completed", label: "Business Profile",   desc: "Tell us about your business" },
+  { key: "verification_submitted",     label: "Await Verification", desc: "We'll review within 24h" },
 ];
 
 export default function VendorOnboarding() {
@@ -24,12 +25,25 @@ export default function VendorOnboarding() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [form, setForm] = useState({ business_name: "", category: "", location: "", address: "", phone: user?.phone || "", whatsapp: "", location_lat: null, location_lng: null });
   const { data: categoryData } = useQuery({ queryKey: ["vendor-categories"], queryFn: getCategories, staleTime: Infinity });
   const [errors, setErrors] = useState({});
 
   const { data, isLoading } = useQuery({ queryKey: ["onboarding"], queryFn: getOnboardingStatus });
   const progress = data?.onboarding;
+
+  // Source of truth for approval state — NOT onboarding_progress,
+  // which only tracks wizard steps and doesn't reflect admin
+  // approve/reject decisions (a rejected vendor can still have
+  // verification_submitted=true from their original application).
+  const { data: vendorData, isLoading: vendorLoading } = useQuery({
+    queryKey: ["vendor-profile"],
+    queryFn: getMyVendorProfile,
+    enabled: !!progress?.verification_submitted,
+    retry: false,
+  });
+  const vendor = vendorData?.vendor;
 
   const registerMutation = useMutation({
     mutationFn: registerVendor,
@@ -38,6 +52,16 @@ export default function VendorOnboarding() {
       await markStepComplete("verification_submitted");
       toast.success("Business registered! Awaiting admin approval.");
       qc.invalidateQueries(["onboarding"]);
+      qc.invalidateQueries(["vendor-profile"]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const reapplyMutation = useMutation({
+    mutationFn: reapplyVendor,
+    onSuccess: () => {
+      toast.success("Reapplication submitted.");
+      qc.invalidateQueries(["vendor-profile"]);
     },
     onError: (err) => toast.error(err.message),
   });
@@ -55,9 +79,11 @@ export default function VendorOnboarding() {
   };
 
   if (isLoading) return <Loader fullscreen />;
-  if (progress?.onboarding_completed) { navigate("/vendor/dashboard"); return null; }
 
-  const completedCount = STEPS.filter((s) => progress?.[s.key]).length;
+  // Approval status — not wizard-step completion — decides dashboard access.
+  if (vendor?.status === "approved") { navigate("/vendor/dashboard", { replace: true }); return null; }
+
+  const completedCount = [termsAccepted || progress?.business_profile_completed, progress?.business_profile_completed, progress?.verification_submitted].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-navy px-4 py-8 max-w-sm mx-auto">
@@ -69,10 +95,9 @@ export default function VendorOnboarding() {
         </div>
       </div>
 
-      {/* Steps */}
       <div className="space-y-3 mb-6">
         {STEPS.map((step, i) => {
-          const done = progress?.[step.key];
+          const done = i === 0 ? termsAccepted || progress?.business_profile_completed : progress?.[step.key];
           const active = i === completedCount;
           return (
             <div key={step.key} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${done ? "border-teal/30 bg-teal/5" : active ? "border-teal bg-teal/10" : "border-surface-border bg-surface opacity-50"}`}>
@@ -88,8 +113,13 @@ export default function VendorOnboarding() {
         })}
       </div>
 
-      {/* Business profile form — shown on step 0 */}
-      {!progress?.business_profile_completed && (
+      {/* Step 0 — Terms & Conditions, must be accepted before the form shows */}
+      {!progress?.business_profile_completed && !termsAccepted && (
+        <TermsAcceptanceStep onAccepted={() => setTermsAccepted(true)} />
+      )}
+
+      {/* Step 1 — Business profile form */}
+      {!progress?.business_profile_completed && termsAccepted && (
         <form onSubmit={(e) => { e.preventDefault(); if (validate()) registerMutation.mutate(form); }} className="space-y-3">
           <Input label="Business Name" value={form.business_name} onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))} error={errors.business_name} />
           <div className="flex flex-col gap-1.5">
@@ -122,12 +152,19 @@ export default function VendorOnboarding() {
         </form>
       )}
 
-      {progress?.verification_submitted && !progress?.onboarding_completed && (
-        <div className="p-4 bg-yellow-400/10 border border-yellow-400/20 rounded-2xl text-center">
-          <span className="text-3xl">⏳</span>
-          <p className="text-yellow-400 font-semibold text-sm mt-2">Awaiting Admin Approval</p>
-          <p className="text-slate-muted text-xs mt-1">We'll notify you once your account is approved. Usually within 24 hours.</p>
-        </div>
+      {/* Step 2 — Pending / rejected, based on actual admin decision */}
+      {progress?.verification_submitted && vendor && vendor.status !== "approved" && (
+        vendorLoading ? <Loader /> : (
+          <VerificationStatusCard
+            role="vendor"
+            status={vendor.status}
+            name={form.business_name || user?.full_name}
+            applicationId={vendor.id}
+            reason={vendor.rejection_reason}
+            onReapply={() => reapplyMutation.mutate()}
+            reapplying={reapplyMutation.isPending}
+          />
+        )
       )}
     </div>
   );

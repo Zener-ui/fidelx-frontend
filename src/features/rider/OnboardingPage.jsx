@@ -1,19 +1,22 @@
 import { useState } from "react";
-import { Bike, CheckCircle2, XCircle } from "lucide-react";
+import { Bike, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { registerRider, retryNinVerification, getMyRiderProfile } from "@/api/riders";
-import { getOnboardingStatus, markStepComplete } from "@/api/onboarding";
+import { getOnboardingStatus, markStepComplete, reapplyRider } from "@/api/onboarding";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Loader from "@/components/common/Loader";
+import TermsAcceptanceStep from "@/components/common/TermsAcceptanceStep";
+import VerificationStatusCard from "@/components/common/VerificationStatusCard";
 
 export default function RiderOnboarding() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [form, setForm] = useState({ nin: "", phone: user?.phone || "", vehicle_type: "motorcycle" });
   const [errors, setErrors] = useState({});
   const [retryNin, setRetryNin] = useState("");
@@ -22,8 +25,8 @@ export default function RiderOnboarding() {
   const progress = data?.onboarding;
 
   // Once identity has been submitted, poll the rider profile so we can
-  // show the real verification outcome (verified / failed / pending)
-  // rather than a generic "submitted" message.
+  // show the real verification outcome (verified / failed / pending /
+  // admin-rejected) rather than a generic "submitted" message.
   const { data: riderData, isLoading: riderLoading } = useQuery({
     queryKey: ["my-rider-profile"],
     queryFn: getMyRiderProfile,
@@ -60,6 +63,15 @@ export default function RiderOnboarding() {
     onError: (err) => toast.error(err.message),
   });
 
+  const reapplyMutation = useMutation({
+    mutationFn: reapplyRider,
+    onSuccess: () => {
+      toast.success("Reapplication submitted.");
+      qc.invalidateQueries(["my-rider-profile"]);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const validate = () => {
     const e = {};
     if (!form.nin.trim() || form.nin.length < 11) e.nin = "Enter a valid 11-digit NIN";
@@ -69,7 +81,7 @@ export default function RiderOnboarding() {
   };
 
   if (isLoading) return <Loader fullscreen />;
-  if (progress?.onboarding_completed) { navigate("/rider/dashboard"); return null; }
+  if (rider?.status === "approved") { navigate("/rider/dashboard", { replace: true }); return null; }
 
   return (
     <div className="min-h-screen bg-navy px-4 py-8 max-w-sm mx-auto">
@@ -78,7 +90,9 @@ export default function RiderOnboarding() {
         <p className="text-slate-muted text-sm mt-1">Submit your details for verification</p>
       </div>
 
-      {!progress?.identity_submitted ? (
+      {!progress?.identity_submitted && !termsAccepted ? (
+        <TermsAcceptanceStep onAccepted={() => setTermsAccepted(true)} />
+      ) : !progress?.identity_submitted ? (
         <form onSubmit={(e) => { e.preventDefault(); if (validate()) mutation.mutate(form); }} className="space-y-4">
           <Input label="NIN (National ID Number)" placeholder="11-digit NIN" value={form.nin}
             onChange={(e) => setForm((f) => ({ ...f, nin: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
@@ -100,9 +114,19 @@ export default function RiderOnboarding() {
         </form>
       ) : riderLoading ? (
         <Loader />
+      ) : rider?.status === "rejected" ? (
+        <VerificationStatusCard
+          role="rider"
+          status="rejected"
+          name={user?.full_name}
+          applicationId={rider?.id}
+          reason={rider?.rejection_reason}
+          onReapply={() => reapplyMutation.mutate()}
+          reapplying={reapplyMutation.isPending}
+        />
       ) : rider?.nin_verified ? (
         <div className="p-6 bg-teal/10 border border-teal/20 rounded-2xl text-center">
-          <CheckCircle2 className="w-10 h-10 text-teal" strokeWidth={1.5} />
+          <CheckCircle2 className="w-10 h-10 text-teal mx-auto" strokeWidth={1.5} />
           <p className="text-teal font-semibold text-sm mt-3">Identity Verified</p>
           <p className="text-slate-muted text-xs mt-1 leading-relaxed">Your NIN has been verified and your rider account is approved.</p>
           <Button className="mt-4" onClick={() => navigate("/rider/dashboard")}>Go to Dashboard</Button>
@@ -110,8 +134,7 @@ export default function RiderOnboarding() {
       ) : rider?.nin_verification_status === "failed" ? (
         <div className="space-y-4">
           <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
-            <XCircle className="w-10 h-10 text-red-500" strokeWidth={1.5} />
-            <p className="text-red-400 font-semibold text-sm mt-3">Verification Failed</p>
+            <p className="text-red-400 font-semibold text-sm">Verification Failed</p>
             <p className="text-slate-muted text-xs mt-1 leading-relaxed">
               {rider?.nin_verification_message || "We couldn't verify your NIN."}
             </p>
@@ -129,11 +152,7 @@ export default function RiderOnboarding() {
           </div>
         </div>
       ) : (
-        <div className="p-6 bg-yellow-400/10 border border-yellow-400/20 rounded-2xl text-center">
-          <span className="text-4xl">⏳</span>
-          <p className="text-yellow-400 font-semibold text-sm mt-3">Verification Pending</p>
-          <p className="text-slate-muted text-xs mt-1 leading-relaxed">Your NIN is being verified. This usually completes within a minute — check back shortly.</p>
-        </div>
+        <VerificationStatusCard role="rider" status="pending" name={user?.full_name} applicationId={rider?.id} />
       )}
     </div>
   );

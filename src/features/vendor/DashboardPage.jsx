@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Package, ShoppingBag, Wallet, Landmark } from "lucide-react";
+import { Package, ShoppingBag, Wallet, Landmark, Star, Settings, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getVendorEarnings } from "@/api/vendors";
 import { getVendorSubOrders } from "@/api/orders";
@@ -37,7 +37,12 @@ export default function VendorDashboard() {
   return (
     <div className="min-h-screen">
       <TopBar title="Dashboard" right={
-        <span className={`text-xs font-semibold ${avail.color}`}>{avail.label}</span>
+        <div className="flex items-center gap-2">
+          <Link to="/vendor/notifications" className="w-8 h-8 rounded-lg bg-surface border border-surface-border flex items-center justify-center">
+            <Bell className="w-4 h-4 text-ink" strokeWidth={1.75} />
+          </Link>
+          <span className={`text-xs font-semibold ${avail.color}`}>{avail.label}</span>
+        </div>
       } />
 
       <div className="px-4 py-3 space-y-4">
@@ -106,6 +111,8 @@ export default function VendorDashboard() {
             { to: "/vendor/orders",      icon: ShoppingBag, label: "Orders" },
             { to: "/vendor/earnings",    icon: Wallet, label: "Earnings" },
             { to: "/vendor/withdrawals", icon: Landmark, label: "Withdraw" },
+            { to: "/vendor/reviews",     icon: Star, label: "Reviews" },
+            { to: "/vendor/settings",    icon: Settings, label: "Settings" },
           ].map(({ to, icon: Icon, label }) => (
             <Link key={to} to={to}>
               <Card hover className="p-4 flex items-center gap-3">

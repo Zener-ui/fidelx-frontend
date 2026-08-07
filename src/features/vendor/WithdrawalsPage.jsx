@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Banknote } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getMyWithdrawals, requestVendorWithdrawal, getFeePreview } from "@/api/withdrawals";
+import { getMyWithdrawals, requestVendorWithdrawal, getFeePreview, getPinStatus } from "@/api/withdrawals";
 import { getVendorEarnings } from "@/api/vendors";
 import { formatNaira, formatDate } from "@/utils";
 import TopBar from "@/components/layout/TopBar";
@@ -12,12 +12,14 @@ import Modal from "@/components/common/Modal";
 import Card from "@/components/common/Card";
 import EmptyState from "@/components/common/EmptyState";
 import BankAccountFields from "@/components/common/BankAccountFields";
+import WithdrawalPinModal from "@/components/common/WithdrawalPinModal";
 
 const STATUS_COLORS = { PENDING:"text-yellow-400", APPROVED:"text-teal", PROCESSING:"text-yellow-400", COMPLETED:"text-teal", REJECTED:"text-red-400", FAILED:"text-red-400" };
 
 export default function VendorWithdrawalsPage() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
   const [form, setForm] = useState({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "" });
   const [verifiedAccount, setVerifiedAccount] = useState(null);
   const [errors, setErrors] = useState({});
@@ -25,8 +27,10 @@ export default function VendorWithdrawalsPage() {
 
   const { data: earningsData } = useQuery({ queryKey: ["vendor-earnings"], queryFn: getVendorEarnings });
   const { data: withdrawalData, isLoading } = useQuery({ queryKey: ["my-withdrawals"], queryFn: getMyWithdrawals });
+  const { data: pinStatusData } = useQuery({ queryKey: ["withdrawal-pin-status"], queryFn: getPinStatus });
   const available = earningsData?.available_balance || 0;
   const withdrawals = withdrawalData?.withdrawals || [];
+  const hasPin = !!pinStatusData?.pin_set;
 
   const previewMutation = useMutation({
     mutationFn: (amount) => getFeePreview(amount),
@@ -41,6 +45,7 @@ export default function VendorWithdrawalsPage() {
       qc.invalidateQueries(["my-withdrawals"]);
       qc.invalidateQueries(["vendor-earnings"]);
       setModalOpen(false);
+      setPinModalOpen(false);
       setForm({ amount: "", bank_account: "", bank_code: "", bank_name: "", account_name: "" });
       setVerifiedAccount(null);
       setPreview(null);
@@ -61,9 +66,15 @@ export default function VendorWithdrawalsPage() {
     if (form.amount && Number(form.amount) > 0) previewMutation.mutate(Number(form.amount));
   };
 
+  // Validate the request details first, then gate the actual submission
+  // behind the withdrawal PIN — entered fresh on every withdrawal.
   const handleSubmit = () => {
     if (!validate()) return;
-    withdrawMutation.mutate({ ...form, amount: Number(form.amount) });
+    setPinModalOpen(true);
+  };
+
+  const handlePinVerified = (pin) => {
+    withdrawMutation.mutate({ ...form, amount: Number(form.amount), pin });
   };
 
   return (
@@ -116,6 +127,14 @@ export default function VendorWithdrawalsPage() {
           <Button size="xl" onClick={handleSubmit} loading={withdrawMutation.isPending}>Submit Request</Button>
         </div>
       </Modal>
+
+      <WithdrawalPinModal
+        open={pinModalOpen}
+        onClose={() => setPinModalOpen(false)}
+        hasPin={hasPin}
+        onVerified={handlePinVerified}
+        verifying={withdrawMutation.isPending}
+      />
     </div>
   );
 }

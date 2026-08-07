@@ -12,11 +12,13 @@ import Card from "@/components/common/Card";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import Modal from "@/components/common/Modal";
+import BankAccountFields from "@/components/common/BankAccountFields";
 
 export default function PlatformRevenuePage() {
   const qc=useQueryClient();
   const [open,setOpen]=useState(false);
   const [form,setForm]=useState({amount:"",bank_account:"",bank_code:"",bank_name:"",account_name:""});
+  const [verifiedAccount,setVerifiedAccount]=useState(null);
 
   const {data:bd,isLoading}=useQuery({queryKey:["platform-balance"],queryFn:getPlatformBalance});
   const {data:ld}=useQuery({queryKey:["platform-ledger"],queryFn:getPlatformLedger});
@@ -30,6 +32,7 @@ export default function PlatformRevenuePage() {
     mutationFn:requestPlatformWithdrawal,
     onSuccess:()=>{toast.success("Platform withdrawal requested.");setOpen(false);
       setForm({amount:"",bank_account:"",bank_code:"",bank_name:"",account_name:""});
+      setVerifiedAccount(null);
       qc.invalidateQueries({queryKey:["platform-balance"]});
       qc.invalidateQueries({queryKey:["platform-withdrawals"]});
       qc.invalidateQueries({queryKey:["platform-ledger"]});},
@@ -86,11 +89,12 @@ export default function PlatformRevenuePage() {
         <p className="text-slate-muted text-xs">Only Fidelx platform revenue can be withdrawn here.</p>
         <Input label="Amount (₦)" type="number" min="1" max={balance.available_balance||0}
           value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/>
-        <Input label="Account Number" value={form.bank_account} onChange={e=>setForm(f=>({...f,bank_account:e.target.value}))}/>
-        <Input label="Bank Code" placeholder="Paystack bank code" value={form.bank_code} onChange={e=>setForm(f=>({...f,bank_code:e.target.value}))}/>
-        <Input label="Bank Name" value={form.bank_name} onChange={e=>setForm(f=>({...f,bank_name:e.target.value}))}/>
-        <Input label="Account Name" value={form.account_name} onChange={e=>setForm(f=>({...f,account_name:e.target.value}))}/>
-        <Button size="xl" onClick={()=>request.mutate({...form,amount:Number(form.amount)})} loading={request.isPending}>Submit Platform Withdrawal</Button>
+        <BankAccountFields form={form} setForm={setForm} verifiedAccount={verifiedAccount} setVerifiedAccount={setVerifiedAccount}/>
+        <Button size="xl" disabled={!verifiedAccount || !form.amount}
+          onClick={()=>{
+            if(!verifiedAccount){toast.error("Verify the bank account before submitting.");return;}
+            request.mutate({...form,amount:Number(form.amount)});
+          }} loading={request.isPending}>Submit Platform Withdrawal</Button>
       </div>
     </Modal>
   </div>;

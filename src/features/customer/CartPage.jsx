@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ShoppingCart, Package, X } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { formatNaira } from "@/utils";
@@ -35,7 +35,7 @@ export default function CartPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-ink text-sm font-semibold truncate">{item.name}</p>
-                <p className="text-slate-muted text-xs">{item.vendor_name}</p>
+                <Link to={`/customer/store/${item.vendor_id}`} onClick={(e) => e.stopPropagation()} className="text-slate-muted text-xs hover:text-teal hover:underline inline-block">{item.vendor_name}</Link>
                 <p className="text-teal font-bold text-sm mt-0.5">{formatNaira(item.price)}</p>
                 <div className="flex items-center gap-3 mt-2">
                   <button onClick={() => updateQuantity(item.product_id, item.variant_id, item.quantity - 1)}
@@ -77,7 +77,7 @@ export default function CartPage() {
 
       <div className="fixed bottom-16 left-0 right-0 z-50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-navy border-t border-surface-border max-w-lg mx-auto">
         <Button size="xl" onClick={() => navigate("/customer/checkout")}>
-          Proceed to Checkout — {formatNaira(subtotal() * 1.05)}
+          Proceed to Checkout · {formatNaira(subtotal() * 1.05)}
         </Button>
       </div>
     </div>

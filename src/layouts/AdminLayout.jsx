@@ -1,5 +1,5 @@
 import AppShell from "@/components/layout/AppShell";
-import { LayoutDashboard, Store, Bike, Package, Scale, Banknote, MessageCircle, Bell, Rocket } from "lucide-react";
+import { LayoutDashboard, Store, Bike, Package, Scale, Banknote, MessageCircle, Bell, Rocket, Star } from "lucide-react";
 
 const NAV = [
   { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -8,6 +8,7 @@ const NAV = [
   { to: "/admin/orders", icon: Package, label: "Orders" },
   { to: "/admin/disputes", icon: Scale, label: "Disputes" },
   { to: "/admin/withdrawals", icon: Banknote, label: "Payouts" },
+  { to: "/admin/reviews", icon: Star, label: "Reviews" },
   { to: "/admin/support", icon: MessageCircle, label: "Support" },
   { to: "/admin/monitoring", icon: Bell, label: "Alerts" },
   { to: "/admin/pilot", icon: Rocket, label: "Pilot" },

@@ -15,6 +15,8 @@ export const getAdminRiders = (status) =>
   client.get("/admin/riders", { params: status ? { status } : {} });
 export const approveRider = (id, payload = {}) =>
   client.put(`/admin/riders/${id}/approve`, payload);
+export const rejectRider = (id, reason) =>
+  client.put(`/admin/riders/${id}/reject`, { reason });
 export const strikeRider = (id) => client.put(`/admin/riders/${id}/strike`);
 
 // Orders + Disputes
@@ -41,3 +43,10 @@ export const updatePilotSettings = (payload) =>
   client.put("/pilot/admin/settings", payload);
 export const generateInviteCode = (payload) =>
   client.post("/pilot/admin/invite-codes/generate", payload);
+
+// Review moderation
+export const getAllReviewsAdmin = (flagged) =>
+  client.get("/admin/reviews", { params: flagged ? { flagged: "true" } : {} });
+export const flagReview = (id) => client.put(`/admin/reviews/${id}/flag`);
+export const removeReview = (id, reason) => client.put(`/admin/reviews/${id}/remove`, { reason });
+export const restoreReview = (id) => client.put(`/admin/reviews/${id}/restore`);

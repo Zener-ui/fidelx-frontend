@@ -20,6 +20,9 @@ const ChangePasswordPage  = lazy(() => import("@/features/auth/ChangePasswordPag
 // Customer pages
 const CustomerHome        = lazy(() => import("@/features/customer/HomePage"));
 const SearchPage          = lazy(() => import("@/features/customer/SearchPage"));
+const StoresPage          = lazy(() => import("@/features/customer/StoresPage"));
+const StorePage           = lazy(() => import("@/features/customer/StorePage"));
+const StoreProductsPage   = lazy(() => import("@/features/customer/StoreProductsPage"));
 const ProductPage         = lazy(() => import("@/features/customer/ProductPage"));
 const CartPage            = lazy(() => import("@/features/customer/CartPage"));
 const CheckoutPage        = lazy(() => import("@/features/customer/CheckoutPage"));
@@ -36,6 +39,7 @@ const VendorDashboard     = lazy(() => import("@/features/vendor/DashboardPage")
 const VendorProducts      = lazy(() => import("@/features/vendor/ProductsPage"));
 const VendorOrders        = lazy(() => import("@/features/vendor/OrdersPage"));
 const VendorEarnings      = lazy(() => import("@/features/vendor/EarningsPage"));
+const VendorReviews       = lazy(() => import("@/features/vendor/ReviewsPage"));
 const VendorWithdrawals   = lazy(() => import("@/features/vendor/WithdrawalsPage"));
 const VendorSettings      = lazy(() => import("@/features/vendor/SettingsPage"));
 const VendorOnboarding    = lazy(() => import("@/features/vendor/OnboardingPage"));
@@ -45,6 +49,7 @@ const RiderDashboard      = lazy(() => import("@/features/rider/DashboardPage"))
 const RiderOrders         = lazy(() => import("@/features/rider/OrdersPage"));
 const RiderEarnings       = lazy(() => import("@/features/rider/EarningsPage"));
 const RiderWithdrawals    = lazy(() => import("@/features/rider/WithdrawalsPage"));
+const RiderSettings       = lazy(() => import("@/features/rider/SettingsPage"));
 const RiderOnboarding     = lazy(() => import("@/features/rider/OnboardingPage"));
 
 // Admin pages
@@ -57,6 +62,7 @@ const AdminWithdrawals    = lazy(() => import("@/features/admin/WithdrawalsPage"
 const AdminPlatformRevenue = lazy(() => import("@/features/admin/PlatformRevenuePage"));
 const AdminSupport        = lazy(() => import("@/features/admin/SupportPage"));
 const AdminMonitoring     = lazy(() => import("@/features/admin/MonitoringPage"));
+const AdminReviews        = lazy(() => import("@/features/admin/ReviewsPage"));
 const AdminPilot          = lazy(() => import("@/features/admin/PilotPage"));
 
 const Wrap = ({ children }) => (
@@ -86,6 +92,9 @@ export default function AppRoutes() {
         <Route index element={<Navigate to="home" replace />} />
         <Route path="home"            element={<Wrap><CustomerHome /></Wrap>} />
         <Route path="search"          element={<Wrap><SearchPage /></Wrap>} />
+        <Route path="stores"          element={<Wrap><StoresPage /></Wrap>} />
+        <Route path="store/:id"          element={<Wrap><StorePage /></Wrap>} />
+        <Route path="store/:id/products" element={<Wrap><StoreProductsPage /></Wrap>} />
         <Route path="product/:id"     element={<Wrap><ProductPage /></Wrap>} />
         <Route path="cart"            element={<Wrap><CartPage /></Wrap>} />
         <Route path="checkout"        element={<Wrap><CheckoutPage /></Wrap>} />
@@ -105,6 +114,8 @@ export default function AppRoutes() {
         <Route path="products"      element={<Wrap><VendorProducts /></Wrap>} />
         <Route path="orders"        element={<Wrap><VendorOrders /></Wrap>} />
         <Route path="earnings"      element={<Wrap><VendorEarnings /></Wrap>} />
+        <Route path="reviews"       element={<Wrap><VendorReviews /></Wrap>} />
+        <Route path="notifications" element={<Wrap><NotificationsPage /></Wrap>} />
         <Route path="withdrawals"   element={<Wrap><VendorWithdrawals /></Wrap>} />
         <Route path="settings"      element={<Wrap><VendorSettings /></Wrap>} />
       </Route>
@@ -117,6 +128,8 @@ export default function AppRoutes() {
         <Route path="orders"        element={<Wrap><RiderOrders /></Wrap>} />
         <Route path="earnings"      element={<Wrap><RiderEarnings /></Wrap>} />
         <Route path="withdrawals"   element={<Wrap><RiderWithdrawals /></Wrap>} />
+        <Route path="settings"      element={<Wrap><RiderSettings /></Wrap>} />
+        <Route path="notifications" element={<Wrap><NotificationsPage /></Wrap>} />
       </Route>
 
       {/* Admin */}
@@ -131,6 +144,7 @@ export default function AppRoutes() {
         <Route path="platform-revenue" element={<Wrap><AdminPlatformRevenue /></Wrap>} />
         <Route path="support"       element={<Wrap><AdminSupport /></Wrap>} />
         <Route path="monitoring"    element={<Wrap><AdminMonitoring /></Wrap>} />
+        <Route path="reviews"       element={<Wrap><AdminReviews /></Wrap>} />
         <Route path="pilot"         element={<Wrap><AdminPilot /></Wrap>} />
       </Route>
 

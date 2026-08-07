@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bike, Store } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import toast from "react-hot-toast";
@@ -58,7 +58,7 @@ export default function CheckoutPage() {
         clearCart();
         window.location.href = payData.authorization_url;
       } catch (err) {
-        toast.error(err.message || "Payment initialization failed. Your order was created — contact support.");
+        toast.error(err.message || "Payment initialization failed. Your order was created. Please contact support.");
       }
     },
     onError: (err) => toast.error(err.message || "Failed to place order"),
@@ -127,7 +127,7 @@ export default function CheckoutPage() {
             {estimateQuery.isFetching && <p className="text-slate-muted text-xs">Calculating delivery fee...</p>}
             {estimateQuery.isError && (
               <p className="text-red-400 text-xs">
-                {estimateQuery.error?.message || "Couldn't calculate a delivery fee for this location — try setting your location again."}
+                {estimateQuery.error?.message || "Couldn't calculate a delivery fee for this location. Try setting your location again."}
               </p>
             )}
             {estimatedFee !== null && !estimateQuery.isFetching && !estimateQuery.isError && (
@@ -138,7 +138,14 @@ export default function CheckoutPage() {
 
         {/* Order items summary */}
         <div className="p-4 bg-surface rounded-2xl border border-surface-border">
-          <h3 className="text-ink font-semibold text-sm mb-3">Items ({items.length})</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-ink font-semibold text-sm">Items ({items.length})</h3>
+            {items[0]?.vendor_name && (
+              <Link to={`/customer/store/${firstVendorId}`} className="text-teal text-xs font-medium hover:underline">
+                {items[0].vendor_name}
+              </Link>
+            )}
+          </div>
           {items.map((item, i) => (
             <div key={i} className="flex justify-between text-sm py-1.5 border-b border-surface-border last:border-0">
               <span className="text-slate-muted truncate flex-1 mr-2">{item.name} × {item.quantity}</span>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { SearchX, Search, Package, ChevronLeft, ChevronRight } from "lucide-react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { searchProducts, getCategories } from "@/api/search";
 import { formatNaira } from "@/utils";
+import { getCategoryIcon } from "@/utils/categoryIcons";
 import TopBar from "@/components/layout/TopBar";
 import Input from "@/components/common/Input";
 import Card from "@/components/common/Card";
@@ -19,6 +20,7 @@ const SORTS = [
 
 export default function SearchPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [q, setQ] = useState(params.get("q") || "");
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
@@ -72,7 +74,11 @@ export default function SearchPage() {
               onClick={() => { setParams({ category_id: c.id }); setPage(1); }}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${category_id === c.id ? "bg-teal text-navy border-teal" : "bg-surface border-surface-border text-slate-muted"}`}
             >
-              {c.icon} {c.name.split(" ")[0]}
+              {(() => {
+                const { icon: CatIcon, color } = getCategoryIcon(c.slug);
+                return <CatIcon className={`w-3.5 h-3.5 ${category_id === c.id ? "text-navy" : color}`} strokeWidth={2} />;
+              })()}
+              {c.name.split(" ")[0]}
             </button>
           ))}
         </div>
@@ -112,20 +118,24 @@ export default function SearchPage() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
               {products.map((p) => (
-                <Link key={p.id} to={`/customer/product/${p.id}`}>
-                  <Card hover className="overflow-hidden">
-                    <div className="aspect-square bg-navy-mid flex items-center justify-center">
-                      {p.images?.[0]
-                        ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-                        : <Package className="w-10 h-10 text-slate-soft" strokeWidth={1.5} />}
-                    </div>
-                    <div className="p-3">
-                      <p className="text-ink text-sm font-semibold line-clamp-2">{p.name}</p>
-                      <p className="text-slate-muted text-xs mt-0.5">{p.vendors?.business_name}</p>
-                      <p className="text-teal font-bold text-sm mt-1.5">{formatNaira(p.price)}</p>
-                    </div>
-                  </Card>
-                </Link>
+                <Card key={p.id} hover className="overflow-hidden" onClick={() => navigate(`/customer/product/${p.id}`)}>
+                  <div className="aspect-square bg-navy-mid flex items-center justify-center">
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                      : <Package className="w-10 h-10 text-slate-soft" strokeWidth={1.5} />}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-ink text-sm font-semibold line-clamp-2">{p.name}</p>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/customer/store/${p.vendors?.id}`); }}
+                      className="text-slate-muted text-xs mt-0.5 hover:text-teal hover:underline block truncate text-left w-full"
+                    >
+                      {p.vendors?.business_name}
+                    </button>
+                    <p className="text-teal font-bold text-sm mt-1.5">{formatNaira(p.price)}</p>
+                  </div>
+                </Card>
               ))}
             </div>
 

@@ -1,5 +1,7 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { clsx } from "clsx";
+import { useAuthStore } from "@/store/authStore";
 
 /**
  * AppShell — the one responsive navigation pattern for the whole app.
@@ -14,8 +16,18 @@ import { clsx } from "clsx";
  * navItems: [{ to, icon: LucideComponent, label, badge? }]
  * subtitle: small text under the wordmark in the desktop sidebar (e.g. "Admin Panel")
  * contentMaxWidth: tailwind max-w-* class for the content column (default max-w-3xl)
+ *
+ * Logout lives here rather than on each role's own settings page —
+ * vendor, rider, and admin all render through this one shell, so a
+ * single button here guarantees it's reachable everywhere instead of
+ * depending on every role happening to have (and someone remembering
+ * to build) its own settings page.
  */
 export default function AppShell({ navItems, subtitle, contentMaxWidth = "max-w-3xl" }) {
+  const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
+  const handleLogout = () => { logout(); navigate("/login", { replace: true }); };
+
   return (
     <div className="min-h-screen bg-navy md:flex">
       {/* Sidebar — desktop */}
@@ -46,6 +58,15 @@ export default function AppShell({ navItems, subtitle, contentMaxWidth = "max-w-
             </NavLink>
           ))}
         </nav>
+        <div className="p-2 border-t border-surface-border">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-red-400 hover:bg-red-500/10 transition-all"
+          >
+            <LogOut className="w-[18px] h-[18px] shrink-0" strokeWidth={2} />
+            <span>Log Out</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -82,6 +103,15 @@ export default function AppShell({ navItems, subtitle, contentMaxWidth = "max-w-
               )}
             </NavLink>
           ))}
+          {/* Always present, outside the 5-item slice above, so logout
+              never gets crowded out by a role's growing nav list */}
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center gap-0.5 flex-1 py-2 rounded-xl min-w-0 text-slate-muted"
+          >
+            <LogOut className="w-[22px] h-[22px]" strokeWidth={2} />
+            <span className="text-[10px] font-medium">Log Out</span>
+          </button>
         </div>
       </nav>
     </div>

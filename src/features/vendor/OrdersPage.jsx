@@ -60,6 +60,11 @@ export default function VendorOrdersPage() {
             {filtered.map((order) => {
               const s = getStatusDisplay(order.status);
               const canMarkReady = order.status === "PAYMENT_CONFIRMED";
+              // For a genuine self-pickup order, the vendor can now confirm
+              // the customer actually collected it — this transition didn't
+              // exist at all before, so pickup orders had no way to ever be
+              // marked complete.
+              const canConfirmPickedUp = order.status === "READY_FOR_PICKUP" && order.delivery_type === "pickup";
               return (
                 <div key={order.id} className="p-4 bg-surface rounded-2xl border border-surface-border space-y-2">
                   <div className="flex items-center justify-between">
@@ -78,10 +83,18 @@ export default function VendorOrdersPage() {
                   </div>
                   {canMarkReady && (
                     <button
-                      onClick={() => updateMutation.mutate({ id: order.id, status: "WAITING_RIDER" })}
+                      onClick={() => updateMutation.mutate({ id: order.id, status: "READY_FOR_PICKUP" })}
                       className="w-full py-2 rounded-xl bg-teal/10 border border-teal/30 text-teal text-sm font-semibold hover:bg-teal/20 transition-all"
                     >
-                      Mark Ready for Pickup
+                      {order.delivery_type === "pickup" ? "Mark Ready for Pickup" : "Mark Ready — Find Rider"}
+                    </button>
+                  )}
+                  {canConfirmPickedUp && (
+                    <button
+                      onClick={() => updateMutation.mutate({ id: order.id, status: "DELIVERED" })}
+                      className="w-full py-2 rounded-xl bg-green-500/10 border border-green-500/30 text-green-500 text-sm font-semibold hover:bg-green-500/20 transition-all"
+                    >
+                      Confirm Customer Picked Up
                     </button>
                   )}
                 </div>

@@ -2,18 +2,23 @@ import { useState } from "react";
 import { Bike } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { getAdminRiders, approveRider, strikeRider } from "@/api/admin";
+import { getAdminRiders, approveRider, rejectRider, strikeRider } from "@/api/admin";
 import { formatDate } from "@/utils";
+import Modal from "@/components/common/Modal";
 import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
 import EmptyState from "@/components/common/EmptyState";
 import ErrorState from "@/components/common/ErrorState";
 import { Skeleton } from "@/components/common/Loader";
 
-const STATUS_COLORS = { pending:"text-yellow-400", approved:"text-teal", suspended:"text-red-400" };
+const TABS = ["pending", "approved", "rejected", "suspended"];
+const STATUS_COLORS = { pending: "text-yellow-400", approved: "text-teal", rejected: "text-red-400", suspended: "text-slate-muted" };
 
 export default function AdminRidersPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState("pending");
+  const [rejectModal, setRejectModal] = useState(null);
+  const [reason, setReason] = useState("");
 
   const { data, isLoading, isError, error, refetch } = useQuery({ queryKey: ["admin-riders", tab], queryFn: () => getAdminRiders(tab) });
   const riders = data?.riders || [];
@@ -51,6 +56,12 @@ export default function AdminRidersPage() {
     },
   });
 
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }) => rejectRider(id, reason),
+    onSuccess: () => { toast.success("Rider rejected"); qc.invalidateQueries(["admin-riders"]); setRejectModal(null); setReason(""); },
+    onError: (err) => toast.error(err.message),
+  });
+
   const strikeMutation = useMutation({
     mutationFn: strikeRider,
     onSuccess: (d) => { toast.success(d?.suspended ? "Rider suspended after 3 strikes" : "Strike issued"); qc.invalidateQueries(["admin-riders"]); },
@@ -60,10 +71,10 @@ export default function AdminRidersPage() {
   return (
     <div className="p-4 md:p-6">
       <h1 className="text-ink text-xl font-bold mb-4">Riders</h1>
-      <div className="flex gap-2 mb-4">
-        {["pending","approved","suspended"].map((t) => (
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-xl text-sm font-medium border capitalize transition-all ${tab === t ? "bg-teal text-navy border-teal" : "border-surface-border text-slate-muted bg-surface"}`}>
+            className={`flex-shrink-0 px-4 py-1.5 rounded-xl text-sm font-medium border capitalize transition-all ${tab === t ? "bg-teal text-navy border-teal" : "border-surface-border text-slate-muted bg-surface"}`}>
             {t}
           </button>
         ))}
@@ -103,14 +114,28 @@ export default function AdminRidersPage() {
                       </Button>
                     )}
                     {r.status === "pending" && (
-                      <Button size="sm" onClick={() => approveMutation.mutate(r)} loading={approveMutation.isPending}>Approve</Button>
+                      <>
+                        <Button size="sm" variant="danger" onClick={() => { setRejectModal(r); setReason(""); }}>Reject</Button>
+                        <Button size="sm" onClick={() => approveMutation.mutate(r)} loading={approveMutation.isPending}>Approve</Button>
+                      </>
                     )}
                   </div>
                 </div>
+                {r.rejection_reason && <p className="text-red-400 text-xs mt-2 p-2 bg-red-400/10 rounded-lg">Reason: {r.rejection_reason}</p>}
               </div>
           ))}
         </div>
       )}
+
+      <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title="Reject Rider">
+        <div className="space-y-3">
+          <p className="text-slate-muted text-sm">Rejecting: <span className="text-ink font-semibold">{rejectModal?.users?.full_name}</span></p>
+          <Input label="Reason for rejection" placeholder="e.g. NIN verification failed" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <Button size="xl" variant="danger" onClick={() => { if (!reason.trim()) { toast.error("Reason required"); return; } rejectMutation.mutate({ id: rejectModal.id, reason }); }} loading={rejectMutation.isPending}>
+            Confirm Rejection
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

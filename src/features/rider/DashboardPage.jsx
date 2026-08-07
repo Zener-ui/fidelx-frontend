@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bike, Circle, MapPin, Home } from "lucide-react";
+import { Bike, Circle, MapPin, Home, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getMyRiderProfile, toggleAvailability, getRiderEarnings } from "@/api/riders";
 import { getAvailableOrders, acceptOrder, getRiderSubOrders } from "@/api/orders";
@@ -39,10 +40,15 @@ export default function RiderDashboard() {
   return (
     <div className="min-h-screen">
       <TopBar title="Rider Dashboard" right={
-        <button onClick={() => toggleMutation.mutate()}
-          className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all ${isActive ? "bg-teal text-navy border-teal" : "border-surface-border text-slate-muted"}`}>
-          <span className="flex items-center gap-1.5">{isActive ? <><Circle className="w-2 h-2 fill-teal text-teal" />Online</> : <><Circle className="w-2 h-2 fill-slate-soft text-slate-soft" />Offline</>}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/rider/notifications" className="w-8 h-8 rounded-lg bg-surface border border-surface-border flex items-center justify-center">
+            <Bell className="w-4 h-4 text-ink" strokeWidth={1.75} />
+          </Link>
+          <button onClick={() => toggleMutation.mutate()}
+            className={`px-3 py-1 rounded-xl text-xs font-bold border transition-all ${isActive ? "bg-teal text-navy border-teal" : "border-surface-border text-slate-muted"}`}>
+            <span className="flex items-center gap-1.5">{isActive ? <><Circle className="w-2 h-2 fill-teal text-teal" />Online</> : <><Circle className="w-2 h-2 fill-slate-soft text-slate-soft" />Offline</>}</span>
+          </button>
+        </div>
       } />
 
       <div className="px-4 py-3 space-y-4">

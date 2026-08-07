@@ -13,9 +13,26 @@ const saveCart = (items) => {
 export const useCartStore = create((set, get) => ({
   items: loadCart(),
 
+  // The Fidelx pilot is one-store-per-cart (see addItem below) — every
+  // item in the cart always shares one vendor_id once it's non-empty.
+  getCartVendorId: () => get().items[0]?.vendor_id || null,
+
   // item shape: { product_id, variant_id, name, price, image, vendor_id, vendor_name, quantity }
+  // Returns { ok: true } on success, or { ok: false, conflictVendorName }
+  // if the cart already holds items from a different store — the
+  // caller (UI) is responsible for asking the customer whether to
+  // clear the cart and switch, then calling replaceCartWithItem.
+  // This mirrors the backend's own one-store-per-order enforcement in
+  // subOrderController.createOrderWithSubOrders — the frontend check
+  // is a UX convenience, not the actual guarantee.
   addItem: (item) => {
     const items = get().items;
+    const cartVendorId = items[0]?.vendor_id;
+
+    if (cartVendorId && cartVendorId !== item.vendor_id) {
+      return { ok: false, conflictVendorName: items[0]?.vendor_name };
+    }
+
     const key = `${item.product_id}_${item.variant_id || ""}`;
     const existing = items.find(
       (i) => `${i.product_id}_${i.variant_id || ""}` === key
@@ -27,6 +44,16 @@ export const useCartStore = create((set, get) => ({
             : i
         )
       : [...items, { ...item, quantity: item.quantity || 1 }];
+    saveCart(next);
+    set({ items: next });
+    return { ok: true };
+  },
+
+  // Clears the existing cart (a different store's items) and starts a
+  // fresh one with this item — used after the customer confirms the
+  // "start a new cart to shop from this store?" prompt.
+  replaceCartWithItem: (item) => {
+    const next = [{ ...item, quantity: item.quantity || 1 }];
     saveCart(next);
     set({ items: next });
   },

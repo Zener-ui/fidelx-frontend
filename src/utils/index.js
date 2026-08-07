@@ -16,6 +16,7 @@ export const formatDateTime = (dateStr) =>
 const STATUS_MAP = {
   PENDING_PAYMENT:   { label: "Awaiting Payment",  color: "text-yellow-400", bg: "bg-yellow-400/10" },
   PAYMENT_CONFIRMED: { label: "Payment Confirmed",  color: "text-teal",       bg: "bg-teal/10" },
+  READY_FOR_PICKUP:  { label: "Ready for Pickup",     color: "text-teal",       bg: "bg-teal/10" },
   WAITING_RIDER:     { label: "Finding Rider",      color: "text-blue-accent", bg: "bg-blue-accent/10" },
   RIDER_ASSIGNED:    { label: "Rider Assigned",     color: "text-blue-accent", bg: "bg-blue-accent/10" },
   PICKED_UP:         { label: "Picked Up",          color: "text-teal",       bg: "bg-teal/10" },

@@ -20,13 +20,21 @@ export const getFeePreview = (amount) =>
 // response: { success, withdrawals[] }
 export const getMyWithdrawals = () => client.get("/withdrawals/my");
 
+// GET /api/withdrawals/pin/status
+// response: { success, pin_set: boolean }
+export const getPinStatus = () => client.get("/withdrawals/pin/status");
+
+// POST /api/withdrawals/pin/set
+// First-time setup: { pin }. Changing an existing PIN: { pin, current_pin }.
+export const setWithdrawalPin = (payload) => client.post("/withdrawals/pin/set", payload);
+
 // POST /api/withdrawals/vendor  [vendor]
-// payload: { amount, bank_account, bank_code, bank_name, account_name }
+// payload: { amount, bank_account, bank_code, bank_name, account_name, pin }
 export const requestVendorWithdrawal = (payload) =>
   client.post("/withdrawals/vendor", payload);
 
 // POST /api/withdrawals/rider  [rider]
-// payload: { amount, bank_account, bank_code, bank_name, account_name }
+// payload: { amount, bank_account, bank_code, bank_name, account_name, pin }
 export const requestRiderWithdrawal = (payload) =>
   client.post("/withdrawals/rider", payload);
 

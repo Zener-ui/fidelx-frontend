@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cartStore";
 import { formatNaira, getAvailabilityDisplay } from "@/utils";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/common/Button";
+import Modal from "@/components/common/Modal";
 import Loader, { Skeleton } from "@/components/common/Loader";
 import ErrorState from "@/components/common/ErrorState";
 
@@ -16,10 +17,15 @@ export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
+  const replaceCartWithItem = useCartStore((s) => s.replaceCartWithItem);
 
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [qty, setQty] = useState(1);
   const [imgIdx, setImgIdx] = useState(0);
+  // One cart = one store (Fidelx pilot rule). When addItem reports a
+  // conflict, this holds the pending item + the other store's name so
+  // the confirm modal can offer "clear cart and switch stores?".
+  const [storeConflict, setStoreConflict] = useState(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["product", id],
@@ -51,7 +57,7 @@ export default function ProductPage() {
     if (isUnavailable) { toast.error("This store is currently unavailable"); return; }
     if (outOfStock) { toast.error("This item is out of stock"); return; }
 
-    addItem({
+    const cartItem = {
       product_id: product.id,
       variant_id: selectedVariant?.id || null,
       name: product.name,
@@ -60,11 +66,24 @@ export default function ProductPage() {
       vendor_id: vendor?.id,
       vendor_name: vendor?.business_name,
       quantity: qty,
-    });
+    };
+
+    const result = addItem(cartItem);
+    if (!result.ok) {
+      setStoreConflict({ item: cartItem, otherStoreName: result.conflictVendorName });
+      return;
+    }
     toast.success(`${product.name} added to cart`);
   };
 
-  const ctaLabel = outOfStock ? "Out of Stock" : isUnavailable ? "Store Unavailable" : `Add to Cart — ${formatNaira(effectivePrice * qty)}`;
+  const confirmSwitchStore = () => {
+    if (!storeConflict) return;
+    replaceCartWithItem(storeConflict.item);
+    toast.success(`Started a new cart for ${storeConflict.item.vendor_name}`);
+    setStoreConflict(null);
+  };
+
+  const ctaLabel = outOfStock ? "Out of Stock" : isUnavailable ? "Store Unavailable" : `Add to Cart · ${formatNaira(effectivePrice * qty)}`;
 
   return (
     <div className="min-h-screen pb-36 lg:pb-8">
@@ -189,11 +208,11 @@ export default function ProductPage() {
             <div>
               <p className="text-slate-soft text-sm font-medium mb-3">Customer Reviews</p>
               <div className="space-y-3">
-                {reviewData.reviews.map((r, i) => (
-                  <div key={i} className="p-3 bg-surface rounded-xl border border-surface-border">
+                {reviewData.reviews.map((r) => (
+                  <div key={r.id} className="p-3 bg-surface rounded-xl border border-surface-border">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-ink text-xs font-medium">{r.users?.full_name || "Customer"}</span>
-                      <span className="flex items-center gap-0.5">{Array.from({ length: r.vendor_rating }).map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />)}</span>
+                      <span className="text-ink text-xs font-medium">{r.customer_name}</span>
+                      <span className="flex items-center gap-0.5">{Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />)}</span>
                     </div>
                     {r.comment && <p className="text-slate-muted text-xs">{r.comment}</p>}
                   </div>
@@ -214,6 +233,20 @@ export default function ProductPage() {
           {ctaLabel}
         </Button>
       </div>
+
+      {/* One cart = one store — confirm before clearing an existing cart */}
+      <Modal open={!!storeConflict} onClose={() => setStoreConflict(null)} title="Start a new cart?" size="sm">
+        <div className="space-y-4">
+          <p className="text-slate-muted text-sm leading-relaxed">
+            Your cart contains items from <span className="text-ink font-semibold">{storeConflict?.otherStoreName || "another store"}</span>.
+            Start a new cart to shop from <span className="text-ink font-semibold">{vendor?.business_name}</span> instead?
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setStoreConflict(null)}>Cancel</Button>
+            <Button variant="danger" className="flex-1" onClick={confirmSwitchStore}>Clear & Switch</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

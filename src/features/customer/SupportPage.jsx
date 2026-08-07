@@ -70,7 +70,7 @@ export default function SupportPage() {
             <label className="text-sm font-medium text-slate-soft">Describe your issue</label>
             <textarea
               rows={5}
-              placeholder="Tell us what's going on — the more detail, the faster we can help."
+              placeholder="Tell us what's going on. The more detail, the faster we can help."
               value={form.message}
               onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
               className={clsx(

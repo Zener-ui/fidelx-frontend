@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import queryClient from "./queryClient";
 import AppRoutes from "./routes";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import IdleLogoutWatcher from "./components/common/IdleLogoutWatcher";
 
 // Remounts the boundary on every navigation, so a crash on one page
 // doesn't leave every subsequent page stuck on the fallback screen.
@@ -21,6 +22,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <IdleLogoutWatcher />
         <RouteErrorBoundary />
         <Toaster
           position="top-center"

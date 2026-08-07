@@ -28,3 +28,11 @@ export const uploadDisputeEvidence = (files) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
+
+export const uploadReviewPhotos = (files) => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+  return client.post("/uploads/review-photos", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

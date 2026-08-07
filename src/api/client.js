@@ -13,7 +13,7 @@ const client = axios.create({
 // ── Request interceptor: inject JWT ──────────────────────────
 client.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("cm_token");
+    const token = useAuthStore.getState().token;
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },

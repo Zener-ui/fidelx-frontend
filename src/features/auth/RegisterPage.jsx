@@ -6,7 +6,6 @@ import { register } from "@/api/auth";
 import { registerVendor } from "@/api/vendors";
 import { registerRider } from "@/api/riders";
 import { getPilotSettings } from "@/api/admin";
-import { getCategories } from "@/api/search";
 import { useAuthStore } from "@/store/authStore";
 import { roleHomePath, isValidNigerianPhone } from "@/utils";
 import Button from "@/components/common/Button";
@@ -22,7 +21,7 @@ const ROLES = [
 const BLANK_FORM = {
   full_name: "", email: "", phone: "", password: "", role: "customer", invite_code: "",
   // Vendor-only fields
-  business_name: "", category: "", location: "", whatsapp: "",
+  business_name: "", location: "", whatsapp: "",
   vendor_address: "", vendor_lat: null, vendor_lng: null,
   // Rider-only fields
   vehicle_type: "motorcycle", nin: "",
@@ -48,12 +47,6 @@ export default function RegisterPage() {
     (form.role === "vendor" && pilot?.vendor_invite_only) ||
     (form.role === "rider"  && pilot?.rider_invite_only);
 
-  const { data: categoryData } = useQuery({
-    queryKey: ["vendor-categories"],
-    queryFn: getCategories,
-    staleTime: Infinity,
-  });
-
   // Switching roles clears out the other roles' fields, so a role
   // switch can never accidentally submit incompatible leftover data
   // from a previously-selected role.
@@ -72,7 +65,6 @@ export default function RegisterPage() {
 
     if (form.role === "vendor") {
       if (!form.business_name.trim()) e.business_name = "Business name is required";
-      if (!form.category.trim()) e.category = "Category is required";
       if (!form.location.trim()) e.location = "Required";
       if (!form.vendor_lat || !form.vendor_lng) e.vendor_location = "Set your shop location using the button above";
     }
@@ -117,7 +109,7 @@ export default function RegisterPage() {
         try {
           await registerVendor({
             business_name: form.business_name,
-            category: form.category,
+            category: "General", // vendor sets a real category later in Settings — see note above
             location: form.location,
             address: form.vendor_address,
             phone: form.phone,
@@ -233,21 +225,6 @@ export default function RegisterPage() {
               onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
               error={errors.business_name}
             />
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="vendor-category" className="text-sm font-medium text-slate-soft">Category</label>
-              <select
-                id="vendor-category"
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full bg-surface rounded-xl border border-surface-border text-ink py-3 px-4 text-sm outline-none focus:border-teal focus:ring-1 focus:ring-teal/30"
-              >
-                <option value="">Select a category</option>
-                {categoryData?.categories?.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                ))}
-              </select>
-              {errors.category && <p className="text-xs text-red-400">{errors.category}</p>}
-            </div>
             <Input
               label="Location / Area"
               placeholder="e.g. Otukpo Central Market"

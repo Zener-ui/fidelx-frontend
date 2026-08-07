@@ -12,7 +12,7 @@ const DELIVERY_STEPS = [
 
 const PICKUP_STEPS = [
   { key: "PAYMENT_CONFIRMED", label: "Confirmed" },
-  { key: "PICKED_UP", label: "Ready" },
+  { key: "READY_FOR_PICKUP", label: "Ready" },
   { key: "DELIVERED", label: "Collected" },
 ];
 
